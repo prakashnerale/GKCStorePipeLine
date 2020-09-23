@@ -52,7 +52,7 @@ object DailyDataIngestAndRefine {
 
     landingFileDF.show()
 
-    //landingFileDF.printSchema()
+    landingFileDF.printSchema()
 
 
   }
