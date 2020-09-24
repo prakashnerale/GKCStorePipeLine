@@ -1,9 +1,12 @@
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions.col
 import com.typesafe.config.{Config, ConfigFactory}
 import DataFunctionObj.read_schema
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+
+
 
 
 object DailyDataIngestAndRefine {
@@ -19,6 +22,7 @@ object DailyDataIngestAndRefine {
 
     val DataConfig : Config= ConfigFactory.load("application.conf")
     val inputLocation = DataConfig.getString("path.inputLocation")
+    val outputLocation = DataConfig.getString("path.outputLocation")
 
 
         //Reading Schema from Config
@@ -38,21 +42,54 @@ object DailyDataIngestAndRefine {
     val dateToday = LocalDate.now()
     val dateYesterday = dateToday.minusDays(1)
 
-    //describing the date in the formatt "_18072020"
+    //describing the date in the format "_18072020"
     //val currDayZoneSuffix = "_" + dateToday.format(DateTimeFormatter.ofPattern("ddMMyyyy"))
     //val prevDayZoneSuffix = "_" + dateYesterday.format(DateTimeFormatter.ofPattern("ddMMyyyy"))
-    val currDayZoneSuffix = "_19072020"
-    val prevDayZoneSuffix = "_18072020"
+    val currDayZoneSuffix = "_18072020"
+    val prevDayZoneSuffix = "_17072020"
 
 
     val landingFileDF = spark.read
       .schema(landingFileSchema)
       .option("delimiter", "|")
-      .csv(inputLocation + "Sales_Landing/SalesDump" + prevDayZoneSuffix)
+      .csv(inputLocation + "Sales_Landing/SalesDump" + currDayZoneSuffix)
 
-    landingFileDF.show()
+    //landingFileDF.show()
 
-    landingFileDF.printSchema()
+    //landingFileDF.printSchema()
+
+    // # Use Case 1 --->Removing null records from Quantity_Sold and Vendor_ID columns
+    // finding valid data(have not null records)
+    val validLandingData = landingFileDF.filter(col("Quantity_Sold").isNotNull
+     && col("Vendor_ID").isNotNull)
+
+    // validLandingData.show()
+    // # Use Case 2-->
+    //Saving Valid data in the location "Outputs/valid"
+    validLandingData.write
+      .mode("overwrite")
+      .option("delimiter", "|")
+      .option("header", true)
+      .csv(outputLocation + "Valid/ValidData" +currDayZoneSuffix)
+
+
+
+    val InValidLandingData = landingFileDF.filter(col("Quantity_Sold").isNull
+      || col("Vendor_ID").isNull)
+
+     //InValidLandingData.show()
+    //Saving InValid data in the location "Outputs/Hold"
+
+     InValidLandingData.write
+      .mode("overwrite")
+      .option("delimiter", "|")
+      .option("header", true)
+      .csv(outputLocation + "Hold/HoldData" +  currDayZoneSuffix)
+
+
+
+
+
 
 
   }
