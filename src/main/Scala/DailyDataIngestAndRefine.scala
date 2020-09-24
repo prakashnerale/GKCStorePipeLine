@@ -85,12 +85,7 @@ object DailyDataIngestAndRefine {
       .option("delimiter", "|")
       .option("header", true)
       .csv(outputLocation + "Hold/HoldData" +  currDayZoneSuffix)
-
-
-
-
-
-
+    
 
   }
 
