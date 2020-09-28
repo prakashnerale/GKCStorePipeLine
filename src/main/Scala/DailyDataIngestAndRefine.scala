@@ -45,16 +45,16 @@ object DailyDataIngestAndRefine {
     //describing the date in the format "_18072020"
     //val currDayZoneSuffix = "_" + dateToday.format(DateTimeFormatter.ofPattern("ddMMyyyy"))
     //val prevDayZoneSuffix = "_" + dateYesterday.format(DateTimeFormatter.ofPattern("ddMMyyyy"))
-    val currDayZoneSuffix = "_18072020"
-    val prevDayZoneSuffix = "_17072020"
+    val currDayZoneSuffix = "_19072020"
+    val prevDayZoneSuffix = "_18072020"
 
 
     val landingFileDF = spark.read
       .schema(landingFileSchema)
       .option("delimiter", "|")
       .csv(inputLocation + "Sales_Landing/SalesDump" + currDayZoneSuffix)
-
     //landingFileDF.show()
+    landingFileDF.createOrReplaceTempView("landingFileDF") //accessing DF by some name(for Sql Query)
 
     //landingFileDF.printSchema()
 
@@ -63,29 +63,55 @@ object DailyDataIngestAndRefine {
     val validLandingData = landingFileDF.filter(col("Quantity_Sold").isNotNull
      && col("Vendor_ID").isNotNull)
 
-    // validLandingData.show()
+   //validLandingData.show()
     // # Use Case 2-->
     //Saving Valid data in the location "Outputs/valid"
-    validLandingData.write
+    /*validLandingData.write
       .mode("overwrite")
       .option("delimiter", "|")
       .option("header", true)
-      .csv(outputLocation + "Valid/ValidData" +currDayZoneSuffix)
-
-
-
+      .csv("E:\\Data\\ValidData")
+*/
     val InValidLandingData = landingFileDF.filter(col("Quantity_Sold").isNull
       || col("Vendor_ID").isNull)
 
      //InValidLandingData.show()
+
+
+
     //Saving InValid data in the location "Outputs/Hold"
 
-     InValidLandingData.write
+     /*InValidLandingData.write
       .mode("overwrite")
       .option("delimiter", "|")
       .option("header", true)
-      .csv(outputLocation + "Hold/HoldData" +  currDayZoneSuffix)
-    
+      .csv("E:\\Data\\HoldData")*/
+
+    //Checking whether updates were received on any previously hold data
+    val previousHoldUpdateDF = spark.read
+      .schema(landingFileSchema)
+      .option("delimiter", "|")
+      .option("header",true)
+      .csv(outputLocation + "Hold/HoldData" + prevDayZoneSuffix)
+    //previousHoldUpdateDF.show()
+    previousHoldUpdateDF.createOrReplaceTempView("previousHoldUpdateDF")//accessing DF by some name
+
+    //Sql Query (for taking the updated records of next day data if its null taking previous day record)
+    val UpdatedLandingData = spark.sql("select a.Sale_ID, a.Product_ID, " +
+      "CASE " +
+      "WHEN (a.Quantity_Sold IS NULL) THEN b.Quantity_Sold " +
+      "ELSE a.Quantity_Sold " +
+      "END AS Quantity_Sold, " +
+      "CASE " +
+      "WHEN (a.Vendor_ID IS NULL) THEN b.Vendor_ID " +
+      "ELSE a.Vendor_ID " +
+      "END AS Vendor_ID, " +
+      "a.Sale_Date, a.Sale_Amount, a.Sale_Currency " +
+      "from landingFileDF a left outer join previousHoldUpdateDF b on a.Sale_ID = b.Sale_ID ")
+
+
+    previousHoldUpdateDF.createOrReplaceTempView("UpdatedLandingData")
+    UpdatedLandingData.show()
 
   }
 
