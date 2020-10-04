@@ -1,6 +1,6 @@
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.{col, when}
 import com.typesafe.config.{Config, ConfigFactory}
 import DataFunctionObj.read_schema
 import java.time.LocalDate
@@ -28,6 +28,9 @@ object DailyDataIngestAndRefine {
         //Reading Schema from Config
         val landingFileSchemaFromFile = DataConfig.getString("schema.landingFileSchema")
         val landingFileSchema =  read_schema(landingFileSchemaFromFile)
+
+        val HoldFileSchemaFromFile = DataConfig.getString("schema.HoldFileSchema")
+       val HoldFileSchema =  read_schema(HoldFileSchemaFromFile)
 
     /*val landingFileSchema = StructType(List(
       StructField("Sale_ID", StringType, true),
@@ -60,8 +63,6 @@ object DailyDataIngestAndRefine {
 
     // # Use Case 1 --->Removing null records from Quantity_Sold and Vendor_ID columns
     // finding valid data(have not null records)
-    val validLandingData = landingFileDF.filter(col("Quantity_Sold").isNotNull
-     && col("Vendor_ID").isNotNull)
 
    //validLandingData.show()
     // # Use Case 2-->
@@ -72,8 +73,7 @@ object DailyDataIngestAndRefine {
       .option("header", true)
       .csv("E:\\Data\\ValidData")
 */
-    val InValidLandingData = landingFileDF.filter(col("Quantity_Sold").isNull
-      || col("Vendor_ID").isNull)
+
 
      //InValidLandingData.show()
 
@@ -87,9 +87,15 @@ object DailyDataIngestAndRefine {
       .option("header", true)
       .csv("E:\\Data\\HoldData")*/
 
+    val validLandingData = landingFileDF.filter(col("Quantity_Sold").isNotNull
+      && col("Vendor_ID").isNotNull)
+    validLandingData.createOrReplaceTempView("validLandingData")
+
+
+
     //Checking whether updates were received on any previously hold data
     val previousHoldUpdateDF = spark.read
-      .schema(landingFileSchema)
+      .schema(HoldFileSchema)
       .option("delimiter", "|")
       .option("header",true)
       .csv(outputLocation + "Hold/HoldData" + prevDayZoneSuffix)
@@ -109,10 +115,47 @@ object DailyDataIngestAndRefine {
       "a.Sale_Date, a.Sale_Amount, a.Sale_Currency " +
       "from landingFileDF a left outer join previousHoldUpdateDF b on a.Sale_ID = b.Sale_ID ")
 
+     previousHoldUpdateDF.createOrReplaceTempView("UpdatedLandingData")
+     UpdatedLandingData.show()
 
-    previousHoldUpdateDF.createOrReplaceTempView("UpdatedLandingData")
-    UpdatedLandingData.show()
+    val releasedFromHold = spark.sql("Select VLD.Sale_ID " +
+    "from validLandingData VLD INNER JOIN previousHoldUpdateDF PHD "+
+    "ON VLD.Sale_ID = PHD.Sale_ID ")
 
+    releasedFromHold.createOrReplaceTempView("releasedFromHold")
+
+    val notReleasedFromHold = spark.sql("Select * from previousHoldUpdateDF "+
+    "Where Sale_ID NOT IN (Select Sale_ID from releasedFromHold )")
+
+    notReleasedFromHold.createOrReplaceTempView("notReleasedFromHold")
+
+    val InValidLandingData = landingFileDF.filter(col("Quantity_Sold").isNull
+      || col("Vendor_ID").isNull)
+      .withColumn("Hold_Reason", when(col("Quantity_Sold").isNull, "Qty_Sold Missing")
+      .otherwise(when(col("Vendor_ID").isNull, "Vendor_ID Missing")))
+      .union(notReleasedFromHold)
+
+    InValidLandingData.show()
+
+    //InValidLandingData.createOrReplaceTempView("InValidLandingData")
+
+    /*validLandingData.write
+     .mode("overwrite")
+     .option("delimiter", "|")
+     .option("header", true)
+     .csv("E:\\Data\\ValidData")
+
+
+    //InValidLandingData.show()
+
+    //Saving InValid data in the location "Outputs/Hold"
+
+    InValidLandingData.write
+     .mode("overwrite")
+     .option("delimiter", "|")
+     .option("header", true)
+     .csv("E:\\Data\\HoldData")
+*/
   }
 
 
