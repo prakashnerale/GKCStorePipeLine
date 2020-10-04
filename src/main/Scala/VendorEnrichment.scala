@@ -99,7 +99,7 @@ object VendorEnrichment {
 
     // Mysql connectivity
 
-    reportDF.write.format("jdbc")
+    /*reportDF.write.format("jdbc")
       .options(Map(
         "url" -> "jdbc:mysql://localhost:3306/gkcstoredb",
         "driver" -> "com.mysql.jdbc.Driver",
@@ -108,7 +108,7 @@ object VendorEnrichment {
         "password" -> "admin"
       ))
       .mode("append")
-      .save()
+      .save()*/
 
 
   }
