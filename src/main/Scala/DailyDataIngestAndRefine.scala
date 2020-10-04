@@ -65,14 +65,6 @@ object DailyDataIngestAndRefine {
     // finding valid data(have not null records)
 
    //validLandingData.show()
-    // # Use Case 2-->
-    //Saving Valid data in the location "Outputs/valid"
-    /*validLandingData.write
-      .mode("overwrite")
-      .option("delimiter", "|")
-      .option("header", true)
-      .csv("E:\\Data\\ValidData")
-*/
 
 
      //InValidLandingData.show()
@@ -91,6 +83,13 @@ object DailyDataIngestAndRefine {
       && col("Vendor_ID").isNotNull)
     validLandingData.createOrReplaceTempView("validLandingData")
 
+    // # Use Case 2-->
+    //Saving Valid data in the location "Outputs/valid"
+    validLandingData.write
+      .mode("overwrite")
+      .option("delimiter", "|")
+      .option("header", true)
+      .csv("E:\\Data\\ValidData")
 
 
     //Checking whether updates were received on any previously hold data
@@ -139,7 +138,7 @@ object DailyDataIngestAndRefine {
 
     //InValidLandingData.createOrReplaceTempView("InValidLandingData")
 
-    /*validLandingData.write
+    validLandingData.write
      .mode("overwrite")
      .option("delimiter", "|")
      .option("header", true)
@@ -155,7 +154,6 @@ object DailyDataIngestAndRefine {
      .option("delimiter", "|")
      .option("header", true)
      .csv("E:\\Data\\HoldData")
-*/
   }
 
 

@@ -67,12 +67,13 @@ object EnrichProductReference {
     "FROM validData VD INNER JOIN productPriceReferenceDF PPR "+
     "ON VD.Product_ID = PPR.Product_ID ")
 
+    productEnrichedDF.show()
+
     //productEnrichedDF.show()
     productEnrichedDF.write
       .option("header", true)
       .option("delimiter","|")
       .mode("overwrite")
       .csv(outputLocation + "Enriched/SaleAmountEnrichment/SaleAmountEnriched" + currDayZoneSuffix)
-
   }
 }
