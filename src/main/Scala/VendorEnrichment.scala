@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
 
 object VendorEnrichment {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder().appName("DailyDataIngestAndRefine").master("local[*]")
+    val spark = SparkSession.builder().appName("VendorEnrichment").master("local[*]")
       .getOrCreate()
 
     val sc = spark.sparkContext

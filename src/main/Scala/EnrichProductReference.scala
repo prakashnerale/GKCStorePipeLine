@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter
 
 object EnrichProductReference {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder().appName("DailyDataIngestAndRefine").master("local[*]")
+    val spark = SparkSession.builder().appName("EnrichProductReference").master("local[*]")
       .getOrCreate()
 
     val sc = spark.sparkContext
