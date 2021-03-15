@@ -55,9 +55,14 @@ object DailyDataIngestAndRefine {
     val landingFileDF = spark.read
       .schema(landingFileSchema)
       .option("delimiter", "|")
-      .csv(inputLocation + "Sales_Landing/SalesDump" + currDayZoneSuffix)
-    //landingFileDF.show()
-    landingFileDF.createOrReplaceTempView("landingFileDF") //accessing DF by some name(for Sql Query)
+      //.csv(inputLocation + "Sales_Landing/SalesDump" + currDayZoneSuffix)
+      .csv("D:\\SCALA_WorkSpace\\GKCStorePipeLine\\Data_Set\\Inputs\\Products")
+
+      landingFileDF.show()
+
+    val SelectColumns = landingFileDF.select("Sale_ID","Product_ID")
+    SelectColumns.show()
+   // landingFileDF.createOrReplaceTempView("landingFileDF") //accessing DF by some name(for Sql Query)
 
     //landingFileDF.printSchema()
 
@@ -145,7 +150,6 @@ object DailyDataIngestAndRefine {
      .csv("E:\\Data\\ValidData")
 
 
-    //InValidLandingData.show()
 
     //Saving InValid data in the location "Outputs/Hold"
 
@@ -155,6 +159,4 @@ object DailyDataIngestAndRefine {
      .option("header", true)
      .csv("E:\\Data\\HoldData")
   }
-
-
 }
